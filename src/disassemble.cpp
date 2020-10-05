@@ -817,7 +817,7 @@ VTDis::~VTDis()
     if (m_pTextViewer != NULL)
     {
         delete m_pTextViewer->buffer();
-        delete m_pTextViewer;
+//        delete m_pTextViewer;
     }
 
 	// Delete the find dialog

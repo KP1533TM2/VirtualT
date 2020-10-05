@@ -24,7 +24,8 @@ Written:	11/13/09  Kenneth D. Pettit
 extern "C"
 {
 #include		"intelhex.h"
-char			path[512];
+#include		"m100emu.h"
+//char			path[512];
 }
 
 static const char *gLoaderCode[] = {
