@@ -48,6 +48,10 @@
 #include "lpt.h"
 #include "clock.h"
 #include "tdock.h"
+#include "spi_flashrom.h"
+
+const char rom_file[] = "test.bin";
+spi_flash_t rom; // rom structure
 
 uchar lcd[10][256];
 uchar lcdpointers[10]={0,0,0,0,0,0,0,0,0,0};
@@ -345,12 +349,20 @@ void init_io(void)
     gSTROBE = 0;
     gCLK = 0;
 
+	// initialize SPI flash
+	rom = en25f80;
+
+	rom.filename = &rom_file;
+	spi_flash_init(&rom);
+
 }
 
 void deinit_io(void)
 {
 	/* Deinitialize the serial port */
 	ser_deinit();
+	spi_flash_deinit(&rom);
+	printf("deinit\n");
 }
 
 void show_remem_mode(void)
@@ -378,12 +390,23 @@ void show_remem_mode(void)
 	display_map_mode("");
 }
 
+uchar spi_byte = 0, spi_cs = 0;
+
 void out(uchar port, uchar val)
 {
 	int		c;
 	unsigned char flags;
 
 	switch(port) {
+	
+		/*
+		==========================================================
+		SPI flash rom
+		==========================================================
+		*/
+		case 0x71: spi_cs = val&1; spi_flash_cs(&rom, val&1); break;
+		case 0x72: spi_byte = spi_bus_cycle(&rom, val); break;
+	
 		/* 
 		==========================================================
 		Extended I/O - Real-time Delay port set value
@@ -956,6 +979,9 @@ int inport(uchar port)
 
 	switch(port) {
 
+		case 0x71: return spi_cs;
+		case 0x72: return spi_byte;
+
 		/* Special VirtualT emulation ports */
 		case 0x20:
 			return 'V';				/* Tell host app it's running on VirtualT */
@@ -982,16 +1008,16 @@ int inport(uchar port)
 			/* Return number of ms remaining */
 			return io21 - c;
 
-		case REMEM_SECTOR_PORT:		/* ReMem Sector access port */
-		case REMEM_DATA_PORT:		/* ReMem Data Port */
-		case REMEM_MODE_PORT:		/* ReMem Mode port */
-		case REMEM_REVID_PORT:		/* ReMem Rev ID */
-		case RAMPAC_SECTOR_PORT:	/* ReMem/RAMPAC emulation port */
-		case RAMPAC_DATA_PORT:		/* ReMem RAMPAC emulation port */
-			if (remem_in(port, &ret))
-				return ret;
-			else
-				return 0;
+//		case REMEM_SECTOR_PORT:		/* ReMem Sector access port */
+//		case REMEM_DATA_PORT:		/* ReMem Data Port */
+//		case REMEM_MODE_PORT:		/* ReMem Mode port */
+//		case REMEM_REVID_PORT:		/* ReMem Rev ID */
+//		case RAMPAC_SECTOR_PORT:	/* ReMem/RAMPAC emulation port */
+//		case RAMPAC_DATA_PORT:		/* ReMem RAMPAC emulation port */
+//			if (remem_in(port, &ret))
+//				return ret;
+//			else
+//				return 0;
 
 		case 0x82:  /* Optional IO thinger? */
 			return(0xA2);
